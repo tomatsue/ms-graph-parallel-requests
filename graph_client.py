@@ -34,33 +34,37 @@ def retry_on_throttling(req):
                 time.sleep(e.wait_sec)
                 continue
 
-        raise TooManyThrottlingException('Exceeded maximum number of attempts.')
+        raise TooManyThrottlingException(
+            'Exceeded maximum number of attempts.')
 
     return wrapper
 
 
 class GraphClient():
     def __init__(self, tenant_name, client_id, client_secret, chasing_enable=True, logging_enable=False):
-        # setting of logging
+        # settings of logging
         self.logger = setup_logger()
         self.logger.disabled = not logging_enable
 
-        # setting of adal and ms graph
+        # settings of adal and ms graph
         self.graph_base_url = 'https://graph.microsoft.com/'
         self.graph_version = 'beta'  # or 'v1.0'
         self.authority_url = f'https://login.microsoftonline.com/{tenant_name}'
         self.client_id = client_id
         self.client_secret = client_secret
+        
+        # chase next links
         self.chasing_enable = chasing_enable
+        
         # refresh token 10 minutes before expiration
         self.time_to_refresh_token_sec = 600
         self.context = adal.AuthenticationContext(self.authority_url)
         self.token = self._get_token()
 
-        # setting of retrying
+        # settings of retrying
         self.retry_enabled = True
-        self.wait_random_min = 2
-        self.wait_random_max = 4
+        self.wait_random_min = 3
+        self.wait_random_max = 5
 
     def _get_token(self):
         return self.context.acquire_token_with_client_credentials(
@@ -78,21 +82,21 @@ class GraphClient():
         if self._is_token_old():
             self.token = self._get_token()
 
-    def _get_chasing(self, api_path, query):
+    def _get_chasing(self, api_path, params=None):
         """ get all data, chasing next links
         """
-        res = self._get(api_path, query=query).json()
+        res = self._request('GET', api_path, params=params).json()
         values = res['value']
         next_url = res['@odata.nextLink'] if '@odata.nextLink' in res else None
         while next_url:
-            res = self._get(next_url).json()
+            res = self._request('GET', next_url).json()
             values += res['value']
             next_url = res['@odata.nextLink'] if '@odata.nextLink' in res else None
 
         return values
 
     @retry_on_throttling
-    def _get(self, api_path, query=None):
+    def _request(self, method, api_path, params=None, data=None):
         self._refresh_token_if_needed()
 
         if api_path.startswith(self.graph_base_url):
@@ -102,8 +106,8 @@ class GraphClient():
                           '/'.join([self.graph_version] + api_path.split('/')))
         headers = {'Authorization':  self.token['accessToken'],
                    'Content-Type': 'application/json'}
-        res = requests.get(url, params=query,
-                           headers=headers, stream=False)
+        res = requests.request(method, url, params=params, json=data,
+                               headers=headers, stream=False)
 
         if res.ok:
             self.logger.info(
@@ -127,8 +131,20 @@ class GraphClient():
 
         return res
 
-    def get(self, api_path, query=None):
+    def get(self, api_path, params=None):
         if self.chasing_enable:
-            return self._get_chasing(api_path, query)
+            return self._get_chasing(api_path, params=params)
         else:
-            return self._get(api_path, query)
+            return self._request('GET', api_path, params=params)
+
+    def post(self, api_path, params=None, data=None):
+        return self._request('POST', api_path, params=params, data=data)
+
+    def patch(self, api_path, params=None, data=None):
+        return self._request('PATCH', api_path, params=params, data=data)
+
+    def put(self, api_path, params=None, data=None):
+        return self._request('PUT', api_path, params=params, data=data)
+
+    def delete(self, api_path, params=None, data=None):
+        return self._request('DELETE', api_path, params=params, data=data)

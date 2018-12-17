@@ -8,7 +8,7 @@
 ## Prerequisites
 
 ### 実行環境
-* Python (>= 3.5)
+* Python (>= 3.6)
 * pip
 * Azure AD に登録されているアプリ（以下のアクセス許可を付与）
   * User.Read.All

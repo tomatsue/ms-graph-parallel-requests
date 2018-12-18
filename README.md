@@ -55,4 +55,4 @@ python get_sign_ins.py
 * [How to perform large scale operations efficiently using Microsoft Graph](https://myignite.techcommunity.microsoft.com/sessions/65997)
   * [Demo codes in C# (github repo)](https://github.com/piotrci/Microsoft-Graph-Efficient-Operations)
 * [Microsoft Azure Active Directory Authentication Library (ADAL) for Python](https://github.com/AzureAD/azure-activedirectory-library-for-python)
-* [Throttling guidance | Graph API concepts](https://msdn.microsoft.com/en-us/library/azure/ad/graph/howto/azure-ad-graph-api-throttling)
+* [Microsoft Graph throttling guidance](https://docs.microsoft.com/en-us/graph/throttling)

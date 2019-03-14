@@ -127,7 +127,7 @@ class GraphClient():
         else:
             self.logger.error(
                 f'{res.request.method} {res.status_code} {unquote(res.request.url)}\n{res.headers}\n{res.text}')
-            res.raise_for_status()
+            # res.raise_for_status()
 
         return res
 
